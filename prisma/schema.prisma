@@ -1,0 +1,51 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Usuario {
+    id        Int        @id @default(autoincrement())
+    nome      String
+    email     String     @unique
+    homebrews Homebrew[]
+    createdAt DateTime   @default(now())
+}
+
+model SistemaRPG {
+    id        Int        @id @default(autoincrement())
+    nome      String     @unique
+    editora   String?
+    homebrews Homebrew[]
+}
+
+model Homebrew {
+    id        Int        @id @default(autoincrement())
+    titulo    String
+    tipo      String
+    conteudo  String
+    sistemaId Int
+    sistema   SistemaRPG @relation(fields: [sistemaId], references: [id], onDelete: Cascade)
+    autorId   Int
+    autor     Usuario    @relation(fields: [autorId], references: [id], onDelete: Cascade)
+    createdAt DateTime   @default(now())
+
+    // Índices para otimizar a performance de busca e filtros exigida no MVP avançado
+    @@index([titulo])
+    @@index([sistemaId])
+    @@index([tipo])
+}
+
+model LogAuditoria {
+    id         Int      @id @default(autoincrement())
+    acao       String // Ex: 'CREATE', 'UPDATE', 'DELETE'
+    entidade   String // Ex: 'Homebrew'
+    registroId Int? // ID do homebrew afetado
+    detalhes   String? // JSON da requisição ou resumo descritivo
+    createdAt  DateTime @default(now())
+
+    @@index([createdAt])
+}

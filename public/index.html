@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HomelinBrewer - Portal Avançado com Auditoria</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+  <div class="max-w-5xl mx-auto space-y-8">
+    
+    <!-- Cabeçalho -->
+    <header class="border-b border-slate-700 pb-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-amber-500">🎲 HomelinBrewer</h1>
+        <p class="text-slate-400 text-sm">Portal Acadêmico com Trilha de Auditoria via Prisma ORM</p>
+      </div>
+      <button onclick="abrirModalLogs()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-600 px-3 py-2 rounded text-xs font-semibold transition">
+        📜 Ver Logs de Auditoria
+      </button>
+    </header>
+
+    <!-- Barra de Filtros e Busca (Agora com Filtro por Autor) -->
+    <section class="bg-slate-800 p-4 rounded-lg border border-slate-700 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Pesquisar por Título</label>
+        <input type="text" id="filtro-busca" placeholder="Digite para buscar..." oninput="mudarFiltro()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Filtrar por Sistema</label>
+        <select id="filtro-sistema" onchange="mudarFiltro()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+          <option value="todos">Todos os Sistemas</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Filtrar por Autor</label>
+        <select id="filtro-autor" onchange="mudarFiltro()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+          <option value="todos">Todos os Autores</option>
+        </select>
+      </div>
+      <div class="flex justify-end pt-4 md:pt-0">
+        <button onclick="abrirModalCadastro()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded text-sm transition">＋ Novo Homebrew</button>
+      </div>
+    </section>
+
+    <!-- Lista de Registros -->
+    <section>
+      <div id="lista-homebrews" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Cards injetados via JS -->
+      </div>
+
+      <!-- Controles de Paginação -->
+      <div class="flex justify-between items-center mt-6 bg-slate-800 p-4 rounded-lg border border-slate-700">
+        <button id="btn-anterior" onclick="mudarPagina(-1)" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded text-sm disabled:opacity-50">← Anterior</button>
+        <span id="info-paginacao" class="text-sm text-slate-300">Página 1 de 1</span>
+        <button id="btn-proximo" onclick="mudarPagina(1)" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded text-sm disabled:opacity-50">Próxima →</button>
+      </div>
+    </section>
+
+    <!-- Modal de Cadastro / Edição -->
+    <div id="modal-cadastro" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden p-4 z-50">
+      <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 max-w-lg w-full space-y-4 shadow-xl">
+        <h2 id="modal-titulo" class="text-xl font-semibold text-slate-200">Cadastrar Novo Homebrew</h2>
+        <form id="form-homebrew" class="space-y-3" onsubmit="salvarHomebrew(event)">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Título</label>
+            <input type="text" id="titulo" required class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Tipo</label>
+              <select id="tipo" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white">
+                <option value="Magia">Magia</option>
+                <option value="Raça">Raça</option>
+                <option value="Classe">Classe</option>
+                <option value="Item Mágico">Item Mágico</option>
+                <option value="Talento">Talento</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Sistema</label>
+              <select id="sistemaId-form" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white"></select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Autor</label>
+            <select id="autorId-form" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Descrição / Conteúdo</label>
+            <textarea id="conteudo" rows="3" required class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white"></textarea>
+          </div>
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" onclick="fecharModalCadastro()" class="bg-slate-700 px-4 py-2 rounded text-sm">Cancelar</button>
+            <button type="submit" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded text-sm text-white font-medium">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de Logs de Auditoria -->
+    <div id="modal-logs" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden p-4 z-50">
+      <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 max-w-2xl w-full space-y-4 shadow-xl max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <h2 class="text-lg font-semibold text-amber-400">📜 Trilha de Auditoria (Logs do Banco)</h2>
+          <button onclick="fecharModalLogs()" class="text-slate-400 hover:text-white text-sm">✕ Fechar</button>
+        </div>
+        
+        <div id="lista-logs" class="space-y-3 overflow-y-auto flex-1 pr-2">
+          <!-- Logs injetados via JS -->
+        </div>
+
+        <div id="container-carregar-mais" class="pt-2 border-t border-slate-700 text-center hidden">
+          <button onclick="carregarMaisLogs()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 text-xs font-semibold px-4 py-2 rounded transition w-full">
+            ⬇️ Carregar mais 20 registros antigos
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let paginaAtual = 1;
+    const limitePorPagina = 4;
+    let totalPaginas = 1;
+    let editandoId = null;
+
+    let paginaLogsAtual = 1;
+    const limiteLogsPorVez = 20;
+
+    async function carregarSelects() {
+      const [resSistemas, resUsuarios] = await Promise.all([
+        fetch('/sistemas'),
+        fetch('/usuarios')
+      ]);
+      const sistemas = await resSistemas.json();
+      const usuarios = await resUsuarios.json();
+
+      // Preencher filtro de sistema no topo
+      document.getElementById('filtro-sistema').innerHTML = '<option value="todos">Todos os Sistemas</option>' + 
+        sistemas.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+
+      // Preencher filtro de autor no topo
+      document.getElementById('filtro-autor').innerHTML = '<option value="todos">Todos os Autores</option>' + 
+        usuarios.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+
+      // Preencher selects do modal de formulário
+      document.getElementById('sistemaId-form').innerHTML = sistemas.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+      document.getElementById('autorId-form').innerHTML = usuarios.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+    }
+
+    async function carregarHomebrews() {
+      const busca = document.getElementById('filtro-busca').value;
+      const sistemaId = document.getElementById('filtro-sistema').value;
+      const autorId = document.getElementById('filtro-autor').value;
+
+      const url = `/homebrews?page=${paginaAtual}&limit=${limitePorPagina}&search=${encodeURIComponent(busca)}&sistemaId=${sistemaId}&autorId=${autorId}`;
+      const res = await fetch(url);
+      const resultado = await res.json();
+      
+      const container = document.getElementById('lista-homebrews');
+      container.innerHTML = '';
+
+      if (resultado.data.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 col-span-2 text-center py-6">Nenhum homebrew encontrado com esses filtros.</p>';
+        return;
+      }
+
+      resultado.data.forEach(h => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-800 p-4 rounded-lg border border-slate-700 flex flex-col justify-between shadow-md';
+        card.innerHTML = `
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-bold text-base text-amber-400">${h.titulo}</h3>
+              <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300 border border-slate-600">${h.tipo}</span>
+            </div>
+            <p class="text-slate-300 text-xs mb-4 line-clamp-3">${h.conteudo}</p>
+          </div>
+          <div class="border-t border-slate-700 pt-3 mt-2 flex justify-between items-center text-xs text-slate-400">
+            <div>
+              <span>⚔️ <strong>Sistema:</strong> ${h.sistema ? h.sistema.nome : 'N/A'}</span><br>
+              <span>👤 <strong>Autor:</strong> ${h.autor ? h.autor.nome : 'N/A'}</span>
+            </div>
+            <div class="space-x-1">
+              <button onclick='abrirModalEditar(${JSON.stringify(h)})' class="text-amber-400 hover:text-amber-300 border border-amber-900 bg-amber-950/40 px-2 py-1 rounded">Editar</button>
+              <button onclick="deletarHomebrew(${h.id})" class="text-red-400 hover:text-red-300 border border-red-900 bg-red-950/40 px-2 py-1 rounded">Excluir</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      totalPaginas = resultado.meta.totalPages || 1;
+      document.getElementById('info-paginacao').innerText = `Página ${paginaAtual} de ${totalPaginas} (Total: ${resultado.meta.total})`;
+      document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
+      document.getElementById('btn-proximo').disabled = paginaAtual >= totalPaginas;
+    }
+
+    function mudarFiltro() {
+      paginaAtual = 1;
+      carregarHomebrews();
+    }
+
+    function mudarPagina(direcao) {
+      paginaAtual += direcao;
+      carregarHomebrews();
+    }
+
+    function abrirModalCadastro() {
+      editandoId = null;
+      document.getElementById('modal-titulo').innerText = "Cadastrar Novo Homebrew";
+      document.getElementById('form-homebrew').reset();
+      document.getElementById('modal-cadastro').classList.remove('hidden');
+    }
+
+    function abrirModalEditar(h) {
+      editandoId = h.id;
+      document.getElementById('modal-titulo').innerText = `Editar Homebrew (ID: ${h.id})`;
+      document.getElementById('titulo').value = h.titulo;
+      document.getElementById('tipo').value = h.tipo;
+      document.getElementById('sistemaId-form').value = h.sistemaId;
+      document.getElementById('autorId-form').value = h.autorId;
+      document.getElementById('conteudo').value = h.conteudo;
+      document.getElementById('modal-cadastro').classList.remove('hidden');
+    }
+
+    function fecharModalCadastro() {
+      document.getElementById('modal-cadastro').classList.add('hidden');
+    }
+
+    async function salvarHomebrew(e) {
+      e.preventDefault();
+      const body = {
+        titulo: document.getElementById('titulo').value,
+        tipo: document.getElementById('tipo').value,
+        sistemaId: Number(document.getElementById('sistemaId-form').value),
+        autorId: Number(document.getElementById('autorId-form').value),
+        conteudo: document.getElementById('conteudo').value
+      };
+
+      const url = editandoId ? `/homebrews/${editandoId}` : '/homebrews';
+      const method = editandoId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        document.getElementById('form-homebrew').reset();
+        fecharModalCadastro();
+        carregarHomebrews();
+      } else {
+        alert('Erro ao salvar o registro no banco.');
+      }
+    }
+
+    async function deletarHomebrew(id) {
+      if (confirm('Deseja excluir permanentemente este registro?')) {
+        await fetch(`/homebrews/${id}`, { method: 'DELETE' });
+        carregarHomebrews();
+      }
+    }
+
+    async function abrirModalLogs() {
+      paginaLogsAtual = 1;
+      document.getElementById('lista-logs').innerHTML = '';
+      await buscarEExibirLogs();
+      document.getElementById('modal-logs').classList.remove('hidden');
+    }
+
+    async function buscarEExibirLogs() {
+      const res = await fetch(`/logs?page=${paginaLogsAtual}&limit=${limiteLogsPorVez}`);
+      const resultado = await res.json();
+      const container = document.getElementById('lista-logs');
+      const containerBotao = document.getElementById('container-carregar-mais');
+      
+      if (resultado.data.length === 0 && paginaLogsAtual === 1) {
+        container.innerHTML = '<p class="text-slate-400 text-xs text-center py-4">Nenhum log registrado ainda.</p>';
+        containerBotao.classList.add('hidden');
+        return;
+      }
+
+      resultado.data.forEach(l => {
+        let corAcao = 'text-blue-400 border-blue-900';
+        if (l.acao === 'CREATE') corAcao = 'text-emerald-400 border-emerald-900';
+        if (l.acao === 'DELETE') corAcao = 'text-red-400 border-red-900';
+
+        const item = document.createElement('div');
+        item.className = 'bg-slate-900 p-3 rounded border border-slate-700 text-xs space-y-1';
+        item.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="px-2 py-0.5 rounded border font-bold ${corAcao}">${l.acao}</span>
+            <span class="text-slate-500">${new Date(l.createdAt).toLocaleString('pt-BR')}</span>
+          </div>
+          <p class="text-slate-300"><strong>Entidade:</strong> ${l.entidade} (ID Ref: ${l.registroId || 'N/A'})</p>
+          <details class="mt-1">
+            <summary class="cursor-pointer text-amber-500 hover:underline">Ver JSON / Detalhes da Requisição</summary>
+            <pre class="bg-slate-950 p-2 rounded mt-1 text-slate-300 overflow-x-auto font-mono text-[10px]">${JSON.stringify(JSON.parse(l.detalhes || '{}'), null, 2)}</pre>
+          </details>
+        `;
+        container.appendChild(item);
+      });
+
+      if (resultado.meta.hasMore) {
+        containerBotao.classList.remove('hidden');
+      } else {
+        containerBotao.classList.add('hidden');
+      }
+    }
+
+    async function carregarMaisLogs() {
+      paginaLogsAtual++;
+      await buscarEExibirLogs();
+    }
+
+    function fecharModalLogs() {
+      document.getElementById('modal-logs').classList.add('hidden');
+    }
+
+    // Inicialização
+    carregarSelects();
+    carregarHomebrews();
+  </script>
+</body>
+</html>
